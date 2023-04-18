@@ -106,18 +106,16 @@ def autocorrect(user_word, valid_words, diff_function, limit):
     "*** YOUR CODE HERE ***"
     if user_word in valid_words:
         return user_word
-    else: 
-        difference = [(i,diff_function(user_word,i,limit)) for i in valid_words]
-        min_d = limit
-        index = 0
-        for i in range(len(difference)):
-            if difference[i][1] < min_d:
-                min_d = difference[i][1]
-                index = i
-        if min_d == limit:
+    else:
+        min_diff = min(diff_function(user_word,i,limit) for i in valid_words)
+        if min_diff > limit:
             return user_word
         else:
-            return difference[index][0]
+            for word in valid_words:
+                if diff_function(user_word,word,limit) == min_diff:
+                    return word 
+
+
     # END PROBLEM 5
 
 
@@ -127,32 +125,81 @@ def shifty_shifts(start, goal, limit):
     their lengths.
     """
     # BEGIN PROBLEM 6
-    assert False, 'Remove this line'
+    start = list(start)
+    goal = list(goal)
+    
+    def helper(start,goal,limit,times):
+
+
+        #当start和goal都还有元素
+        if start and goal:
+            #先判断超过limit次数没有
+            if times == limit:
+            #当把limit次更换次数用完的时候
+            #如果start和goal刚好相等，则return 0, 这样跟limit对比起来的时候肯定不会比limit大
+            #如果start和goal不相等，则return 1,这样跟limit 对比起来的时候就会比limit大
+            #为什么肯定会比limit大？ 因为此时更改的次数已经刚好在limit边界了，也就是说前面已经加了limit次的1了，
+            #这里再加一个1，返回的结果肯定比limit大
+                if start == goal:
+                    return 0
+                else:
+                    return 1
+                
+            
+            
+
+            if start[0] == goal[0]:
+                start.remove(start[0])
+                goal.remove(goal[0])
+                return 0 + helper(start,goal,limit,times)
+            else:
+                start.remove(start[0])
+                goal.remove(goal[0])
+                return 1 + helper(start,goal,limit,times+1)
+
+        #这里的else指的是如果start或者goal有一个无了，即start和goal长度不相等
+        #则找到相差的长度，加到total里面去
+        else:
+            return max(len(start),len(goal))
+            
+        
+    return helper(start,goal,limit,0)
+
+
+            
     # END PROBLEM 6
 
 
 def pawssible_patches(start, goal, limit):
     """A diff function that computes the edit distance from START to GOAL."""
-    assert False, 'Remove this line'
-
-    if ______________: # Fill in the condition
+    original_limit = limit
+    if not start and not goal: # Fill in the condition
         # BEGIN
         "*** YOUR CODE HERE ***"
+        return 0
         # END
 
-    elif ___________: # Feel free to remove or add additional cases
+    elif not start or not goal: # Feel free to remove or add additional cases
         # BEGIN
         "*** YOUR CODE HERE ***"
+        return abs(len(start) - len(goal))
         # END
+        
+    elif limit ==0 and start !=goal:
+        return original_limit + 1
+
+    elif start[0] == goal[0]:
+        return pawssible_patches(start[1:],goal[1:],limit)
 
     else:
-        add_diff = ... # Fill in these lines
-        remove_diff = ...
-        substitute_diff = ...
+        add_diff = pawssible_patches(start,goal[1:],limit - 1) # Fill in these lines
+        remove_diff = pawssible_patches(start[1:],goal,limit - 1)
+        substitute_diff = pawssible_patches(start[1:],goal[1:], limit - 1)
+        
+        return min(add_diff,remove_diff,substitute_diff) +1
         # BEGIN
         "*** YOUR CODE HERE ***"
         # END
-
 
 def final_diff(start, goal, limit):
     """A diff function. If you implement this function, it will be used."""
@@ -168,6 +215,32 @@ def report_progress(typed, prompt, user_id, send):
     """Send a report of your id and progress so far to the multiplayer server."""
     # BEGIN PROBLEM 8
     "*** YOUR CODE HERE ***"
+    #①：calculate progress
+    #②：create a dictionary
+    #③：send the report with 'send' function
+    
+    #①：calculate progress
+    stop = False
+    correct_words = 0
+    total = len(prompt)
+
+    while prompt and typed and stop == False:
+        if typed[0] == prompt[0]:
+            typed = typed[1:]
+            prompt = prompt[1:]
+            correct_words += 1
+        else:
+            stop = True
+    progress = correct_words / total
+    
+    #②：create a dictionary
+    report = {'id': user_id, 
+              'progress': progress}
+    send(report)
+    
+    #③：send the report with 'send' function
+    return progress
+
     # END PROBLEM 8
 
 
@@ -194,6 +267,24 @@ def time_per_word(times_per_player, words):
     """
     # BEGIN PROBLEM 9
     "*** YOUR CODE HERE ***"
+    #①：第一个列表装words
+    #②:第二个列表装每个player的time
+    
+    #①：装words的列表不需要构建，直接返回参数words
+    #②：装每个player的time的列表
+    time_for_all_player = []
+    
+    for player in times_per_player:
+        time_for_one_player = []
+        i = 0
+        while i < len(words):
+            word_time = player[i+1] - player[i]
+            time_for_one_player.append(word_time)
+            i += 1
+        time_for_all_player.append(time_for_one_player)
+
+    return game(words,time_for_all_player)
+
     # END PROBLEM 9
 
 
@@ -209,6 +300,24 @@ def fastest_words(game):
     word_indices = range(len(all_words(game)))    # contains an *index* for each word
     # BEGIN PROBLEM 10
     "*** YOUR CODE HERE ***"
+    words = all_words(game)
+    time = all_times(game)
+    
+    
+    #创建装结果的list
+    result = list()
+    for i in player_indices:
+        result.append(list())
+        
+    #一个个Word去遍历
+    for word in word_indices:
+        min_time_for_this_word = min(time[i][word] for i in player_indices)
+        find = False
+        for player in player_indices:
+            if time[player][word]==min_time_for_this_word and not find: #这个player的这个word的时间是否是min
+                result[player].append(words[word])
+                find = True
+    return result
     # END PROBLEM 10
 
 
@@ -248,7 +357,7 @@ def game_string(game):
     """A helper function that takes in a game object and returns a string representation of it"""
     return "game(%s, %s)" % (game[0], game[1])
 
-enable_multiplayer = False  # Change to True when you're ready to race.
+enable_multiplayer = True  # Change to True when you're ready to race.
 
 ##########################
 # Command Line Interface #
