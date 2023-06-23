@@ -51,6 +51,7 @@ class Insect:
     """An Insect, the base class of Ant and Bee, has armor and a Place."""
 
     damage = 0
+    is_watersafe = False
     # ADD CLASS ATTRIBUTES HERE
 
     def __init__(self, armor, place=None):
@@ -106,6 +107,7 @@ class Ant(Insect):
     implemented = False  # Only implemented Ant classes should be instantiated
     food_cost = 0
     # ADD CLASS ATTRIBUTES HERE
+    is_buffed = False
 
     def __init__(self, armor=1):
         """Create an Ant with an ARMOR quantity."""
@@ -145,6 +147,7 @@ class HarvesterAnt(Ant):
     name = 'Harvester'
     implemented = True
     # OVERRIDE CLASS ATTRIBUTES HERE
+    food_cost = 2
 
     def action(self, gamestate):
         """Produce 1 additional food for the colony.
@@ -153,6 +156,7 @@ class HarvesterAnt(Ant):
         """
         # BEGIN Problem 1
         "*** YOUR CODE HERE ***"
+        gamestate.food += 1
         # END Problem 1
 
 
@@ -165,6 +169,7 @@ class ThrowerAnt(Ant):
     # ADD/OVERRIDE CLASS ATTRIBUTES HERE
     min_range = 0
     max_range = float('inf')
+    food_cost = 3
 
     def nearest_bee(self, beehive):
         """Return the nearest Bee in a Place that is not the HIVE (beehive), connected to
@@ -295,29 +300,50 @@ class HungryAnt(Ant):
     name = 'Hungry'
     food_cost = 4
     # OVERRIDE CLASS ATTRIBUTES HERE
+    time_to_digest = 3
     # BEGIN Problem 6
-    implemented = False   # Change to True to view in the GUI
+    implemented = True   # Change to True to view in the GUI
     # END Problem 6
 
-    def __init__(self, armor=1):
+    def __init__(self, armor=1,digesting = 0):
         # BEGIN Problem 6
         "*** YOUR CODE HERE ***"
+        Ant.__init__(self,armor)
+        self.digesting = digesting
+        
+    
         # END Problem 6
 
     def eat_bee(self, bee):
         # BEGIN Problem 6
         "*** YOUR CODE HERE ***"
+        bee.reduce_armor(bee.armor)
+        self.digesting = self.time_to_digest
+      
         # END Problem 6
 
     def action(self, gamestate):
         # BEGIN Problem 6
         "*** YOUR CODE HERE ***"
+        if self.place.bees:
+            if self.digesting >0:
+                self.digesting -= 1
+            else:
+                self.eat_bee(rANTdom_else_none(self.place.bees))
         # END Problem 6
 
 
 
 # BEGIN Problem 7
 # The WallAnt class
+class WallAnt(Ant):
+    name = 'Wall'
+    food_cost = 4
+    implemented = True
+    
+    def __init__(self,armor=4):
+        Ant.__init__(self,armor)
+        
 # END Problem 7
 
 
@@ -329,27 +355,50 @@ class Water(Place):
         its armor to 0."""
         # BEGIN Problem 8
         "*** YOUR CODE HERE ***"
+        Place.add_insect(self,insect)
+        if insect.is_watersafe == False:
+            insect.reduce_armor(insect.armor)
         # END Problem 8
 
 # BEGIN Problem 9
 # The ScubaThrower class
+class ScubaThrower(ThrowerAnt):
+    food_cost = 6
+    is_watersafe = True
+    name = 'Scuba'
+    implemented = True
 # END Problem 9
 
+
+
+
 # BEGIN Problem EC
-class QueenAnt(Ant):  # You should change this line
+class QueenAnt(ScubaThrower):  # You should change this line
 # END Problem EC
     """The Queen of the colony. The game is over if a bee enters her place."""
 
     name = 'Queen'
     food_cost = 7
+    counter = 0
+    authenticity = True
+    
     # OVERRIDE CLASS ATTRIBUTES HERE
     # BEGIN Problem EC
-    implemented = False   # Change to True to view in the GUI
+    implemented = True   # Change to True to view in the GUI
     # END Problem EC
 
     def __init__(self, armor=1):
         # BEGIN Problem EC
         "*** YOUR CODE HERE ***"
+        QueenAnt.counter += 1
+
+        if self.counter > 1:
+            self.authenticity = False
+        else:
+            self.authenticity = True
+            
+        ScubaThrower.__init__(self,armor)
+    
         # END Problem EC
 
     def action(self, gamestate):
@@ -360,6 +409,27 @@ class QueenAnt(Ant):  # You should change this line
         """
         # BEGIN Problem EC
         "*** YOUR CODE HERE ***"
+        if self.authenticity == True:
+            ThrowerAnt.action(self, gamestate)
+            exit_p = self.place.exit
+    
+            while exit_p:
+                if exit_p.ant and exit_p.ant.is_buffed == False:
+                    exit_p.ant.damage = exit_p.ant.damage * 2
+                    exit_p.ant.is_buffed = True
+                else:
+                    exit_p = exit_p.exit
+                
+        else:
+            self.reduce_armor(self.armor)
+                
+    def remove_from(self,place):
+        if self.authenticity == True:
+            return
+        else:
+            ScubaThrower.remove_from(self,place)
+        
+                
         # END Problem EC
 
     def reduce_armor(self, amount):
@@ -368,6 +438,9 @@ class QueenAnt(Ant):  # You should change this line
         """
         # BEGIN Problem EC
         "*** YOUR CODE HERE ***"
+        Insect.reduce_armor(self, amount)
+        if self.armor <= 0 and self.authenticity == True:
+            bees_win()
         # END Problem EC
 
 
@@ -387,6 +460,7 @@ class Bee(Insect):
     name = 'Bee'
     damage = 1
     # OVERRIDE CLASS ATTRIBUTES HERE
+    is_watersafe = True
 
 
     def sting(self, ant):
