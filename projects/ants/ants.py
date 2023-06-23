@@ -59,7 +59,8 @@ class Insect:
         self.place = place  # set by Place.add_insect and Place.remove_insect
 
     def reduce_armor(self, amount):
-        """Reduce armor by AMOUNT, and remove the insect from its place if it
+        """Reduce armor by AMOUNT,
+and remove the insect from its place if it
         has no armor remaining.
 
         >>> test_insect = Insect(5)
@@ -245,7 +246,7 @@ class FireAnt(Ant):
     food_cost = 5
     # OVERRIDE CLASS ATTRIBUTES HERE
     # BEGIN Problem 5
-    implemented = False   # Change to True to view in the GUI
+    implemented = True   # Change to True to view in the GUI
     # END Problem 5
 
     def __init__(self, armor=3):
@@ -261,6 +262,30 @@ class FireAnt(Ant):
         """
         # BEGIN Problem 5
         "*** YOUR CODE HERE ***"
+        place = self.place
+        Ant.reduce_armor(self,amount)
+        if self.armor <= 0:
+            damage_all = amount + self.damage
+        else:
+            damage_all = amount
+
+
+            
+        #如果想一边遍历列表，一边对列表做出改变
+        #就要深拷贝一个列表，例如list(列表)或者列表[:]
+        #拷贝后，遍历的时候遍历深拷贝的列表，但是循环里做的是去改变原列表
+        bee_copy = list(place.bees)
+        for bee in bee_copy:
+            bee.reduce_armor(damage_all)
+
+        second_copy = list(bee_copy)
+        for bee in second_copy:
+            if bee.place == None:
+                bee_copy.remove(bee)
+    
+        place.bees = bee_copy
+        
+        
         # END Problem 5
 
 class HungryAnt(Ant):
